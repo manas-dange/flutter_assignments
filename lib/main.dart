@@ -1,361 +1,371 @@
-// ignore_for_file: avoid_print
-
-// ==========================================
-// DART CONSOLE PROGRAM: LIBRARY SYSTEM MODEL
-// Demonstrating:
-// 1. Variables and Data Types
-// 2. Control Flow & Loops (for, for-in, while)
-// 3. Functions & Methods
-// 4. Object-Oriented Programming (OOP) & Inheritance
-// ==========================================
-
-/// Base Class representing a general item in the library catalog.
-class LibraryItem {
-  final String id;
-  final String title;
-  final int publicationYear;
-  bool isBorrowed;
-
-  LibraryItem({
-    required this.id,
-    required this.title,
-    required this.publicationYear,
-    this.isBorrowed = false,
-  });
-
-  /// Method to check out the item.
-  bool checkOut() {
-    if (!isBorrowed) {
-      isBorrowed = true;
-      return true;
-    }
-    return false;
-  }
-
-  /// Method to return the item.
-  bool returnItem() {
-    if (isBorrowed) {
-      isBorrowed = false;
-      return true;
-    }
-    return false;
-  }
-
-  /// Method to display item details (overridden by subclasses).
-  void displayInfo() {
-    final status = isBorrowed ? 'Borrowed' : 'Available';
-    print(
-      'ID: $id | Title: "$title" | Year: $publicationYear | Status: $status',
-    );
-  }
-}
-
-/// Subclass 1: Book inheriting from LibraryItem.
-class Book extends LibraryItem {
-  final String author;
-  final String genre;
-  final int pageCount;
-
-  Book({
-    required super.id,
-    required super.title,
-    required super.publicationYear,
-    required this.author,
-    required this.genre,
-    required this.pageCount,
-    super.isBorrowed,
-  });
-
-  @override
-  void displayInfo() {
-    final status = isBorrowed ? 'Borrowed' : 'Available';
-    print(
-      '[BOOK] ID: $id | "$title" by $author | Genre: $genre | Pages: $pageCount | Year: $publicationYear | Status: $status',
-    );
-  }
-}
-
-/// Subclass 2: DVD inheriting from LibraryItem.
-class DVD extends LibraryItem {
-  final String director;
-  final int durationMinutes;
-
-  DVD({
-    required super.id,
-    required super.title,
-    required super.publicationYear,
-    required this.director,
-    required this.durationMinutes,
-    super.isBorrowed,
-  });
-
-  @override
-  void displayInfo() {
-    final status = isBorrowed ? 'Borrowed' : 'Available';
-    print(
-      '[DVD]  ID: $id | "$title" directed by $director | Runtime: ${durationMinutes}mins | Year: $publicationYear | Status: $status',
-    );
-  }
-}
-
-/// Subclass 3: Magazine inheriting from LibraryItem.
-class Magazine extends LibraryItem {
-  final int issueNumber;
-  final String publisher;
-
-  Magazine({
-    required super.id,
-    required super.title,
-    required super.publicationYear,
-    required this.issueNumber,
-    required this.publisher,
-    super.isBorrowed,
-  });
-
-  @override
-  void displayInfo() {
-    final status = isBorrowed ? 'Borrowed' : 'Available';
-    print(
-      '[MAGAZINE] ID: $id | "$title" (Issue #$issueNumber) | Publisher: $publisher | Year: $publicationYear | Status: $status',
-    );
-  }
-}
-
-/// Class representing a registered library member.
-class LibraryMember {
-  final String memberId;
-  final String name;
-  final List<LibraryItem> borrowedItems = [];
-
-  LibraryMember({required this.memberId, required this.name});
-
-  void displayMemberSummary() {
-    print(
-      'Member ID: $memberId | Name: $name | Borrowed Count: ${borrowedItems.length}',
-    );
-    if (borrowedItems.isNotEmpty) {
-      print('  Borrowed Titles:');
-      for (final item in borrowedItems) {
-        print('   - ${item.title}');
-      }
-    }
-  }
-}
-
-/// Class managing library operations, catalog, and members.
-class Library {
-  final String libraryName;
-  final List<LibraryItem> catalog = [];
-  final Map<String, LibraryMember> members = {};
-
-  Library(this.libraryName);
-
-  /// Adds a new LibraryItem to the catalog.
-  void addItem(LibraryItem item) {
-    catalog.add(item);
-    print('Added "${item.title}" to $libraryName catalog.');
-  }
-
-  /// Registers a library member.
-  void registerMember(LibraryMember member) {
-    members[member.memberId] = member;
-    print('Registered member: ${member.name} (${member.memberId})');
-  }
-
-  /// Demonstrating loop iteration over catalog.
-  void displayCatalog() {
-    print('\n========================================');
-    print('       $libraryName CATALOG');
-    print('========================================');
-    if (catalog.isEmpty) {
-      print('No items in the catalog.');
-      return;
-    }
-
-    for (final item in catalog) {
-      item.displayInfo();
-    }
-    print('========================================\n');
-  }
-
-  /// Search for items matching a keyword in title.
-  List<LibraryItem> searchByTitle(String keyword) {
-    final results = <LibraryItem>[];
-    for (final item in catalog) {
-      if (item.title.toLowerCase().contains(keyword.toLowerCase())) {
-        results.add(item);
-      }
-    }
-    return results;
-  }
-
-  /// Issues an item to a member.
-  bool issueItem(String memberId, String itemId) {
-    final member = members[memberId];
-    if (member == null) {
-      print('Error: Member ID $memberId not found.');
-      return false;
-    }
-
-    LibraryItem? targetItem;
-    for (var i = 0; i < catalog.length; i++) {
-      if (catalog[i].id == itemId) {
-        targetItem = catalog[i];
-        break;
-      }
-    }
-
-    if (targetItem == null) {
-      print('Error: Item ID $itemId not found in catalog.');
-      return false;
-    }
-
-    if (targetItem.checkOut()) {
-      member.borrowedItems.add(targetItem);
-      print('Success: ${member.name} borrowed "${targetItem.title}".');
-      return true;
-    } else {
-      print('Notice: "${targetItem.title}" is already borrowed.');
-      return false;
-    }
-  }
-
-  /// Returns an item borrowed by a member.
-  bool returnItem(String memberId, String itemId) {
-    final member = members[memberId];
-    if (member == null) {
-      print('Error: Member ID $memberId not found.');
-      return false;
-    }
-
-    LibraryItem? targetItem;
-    for (final item in member.borrowedItems) {
-      if (item.id == itemId) {
-        targetItem = item;
-        break;
-      }
-    }
-
-    if (targetItem == null) {
-      print(
-        'Error: Member ${member.name} does not have item ID $itemId checked out.',
-      );
-      return false;
-    }
-
-    if (targetItem.returnItem()) {
-      member.borrowedItems.remove(targetItem);
-      print('Success: ${member.name} returned "${targetItem.title}".');
-      return true;
-    }
-    return false;
-  }
-}
-
-/// Helper function to format header prints.
-void printHeader(String title) {
-  print('\n>>> $title <<<');
-}
+import 'package:flutter/material.dart';
 
 void main() {
-  print('==============================================');
-  print('   WELCOME TO THE DART LIBRARY SYSTEM MODEL   ');
-  print('==============================================');
+  runApp(const ProfileApp());
+}
 
-  // 1. Variables & Data Types
-  final String libraryName = 'City Central Library';
-  final Library cityLibrary = Library(libraryName);
+class ProfileApp extends StatelessWidget {
+  const ProfileApp({super.key});
 
-  printHeader('1. Adding Items (OOP Inheritance & Polymorphism)');
+  @override
+  Widget build(BuildContext context) {
+    // Custom theme colors
+    const primaryColor = Color(0xFF6C5CE7);
+    const secondaryColor = Color(0xFFA29BFE);
+    const backgroundColor = Color(0xFFF4F6F9);
+    const cardBackgroundColor = Colors.white;
+    const textColor = Color(0xFF2D3436);
+    const subtitleColor = Color(0xFF636E72);
 
-  final Book book1 = Book(
-    id: 'B001',
-    title: 'The Great Gatsby',
-    publicationYear: 1925,
-    author: 'F. Scott Fitzgerald',
-    genre: 'Classic Fiction',
-    pageCount: 180,
-  );
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Profile UI',
+      theme: ThemeData(
+        useMaterial3: true,
+        scaffoldBackgroundColor: backgroundColor,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: primaryColor,
+          primary: primaryColor,
+          secondary: secondaryColor,
+          surface: cardBackgroundColor,
+        ),
+        textTheme: const TextTheme(
+          headlineMedium: TextStyle(
+            color: textColor,
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+          ),
+          titleMedium: TextStyle(
+            color: subtitleColor,
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+          ),
+          bodyMedium: TextStyle(color: textColor, fontSize: 14),
+        ),
+      ),
+      home: const ProfileScreen(),
+    );
+  }
+}
 
-  final Book book2 = Book(
-    id: 'B002',
-    title: 'Clean Code',
-    publicationYear: 2008,
-    author: 'Robert C. Martin',
-    genre: 'Software Engineering',
-    pageCount: 464,
-  );
+class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({super.key});
 
-  final DVD dvd1 = DVD(
-    id: 'D001',
-    title: 'Inception',
-    publicationYear: 2010,
-    director: 'Christopher Nolan',
-    durationMinutes: 148,
-  );
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
 
-  final Magazine mag1 = Magazine(
-    id: 'M001',
-    title: 'National Geographic',
-    publicationYear: 2024,
-    issueNumber: 245,
-    publisher: 'NatGeo Media',
-  );
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'User Profile',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: SingleChildScrollView(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 400),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(24.0),
+                boxShadow: [
+                  BoxShadow(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Profile Avatar Section using CircleAvatar, Container, and Icon
+                  Container(
+                    padding: const EdgeInsets.all(4.0),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: theme.colorScheme.primary,
+                        width: 3.0,
+                      ),
+                    ),
+                    child: CircleAvatar(
+                      radius: 50,
+                      backgroundColor: theme.colorScheme.secondary.withValues(
+                        alpha: 0.3,
+                      ),
+                      child: Icon(
+                        Icons.person,
+                        size: 60,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
 
-  cityLibrary.addItem(book1);
-  cityLibrary.addItem(book2);
-  cityLibrary.addItem(dvd1);
-  cityLibrary.addItem(mag1);
+                  // Name & Title using Text and Column
+                  Text('Alex Morgan', style: theme.textTheme.headlineMedium),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Flutter & Mobile Developer',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
 
-  printHeader('2. Registering Members');
-  final member1 = LibraryMember(memberId: 'MEM01', name: 'Alice Smith');
-  final member2 = LibraryMember(memberId: 'MEM02', name: 'Bob Johnson');
+                  // Location Tag using Row, Icon, Text, and Container
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.location_on,
+                          size: 16,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'San Francisco, CA',
+                          style: TextStyle(
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
 
-  cityLibrary.registerMember(member1);
-  cityLibrary.registerMember(member2);
+                  // Statistics Section using Container, Row, Column, Text, and Icon
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 16,
+                      horizontal: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: theme.scaffoldBackgroundColor,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildStatItem(
+                          context,
+                          count: '128',
+                          label: 'Projects',
+                          icon: Icons.code,
+                        ),
+                        _buildDivider(theme),
+                        _buildStatItem(
+                          context,
+                          count: '14.5k',
+                          label: 'Followers',
+                          icon: Icons.people,
+                        ),
+                        _buildDivider(theme),
+                        _buildStatItem(
+                          context,
+                          count: '4.9',
+                          label: 'Rating',
+                          icon: Icons.star,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
 
-  printHeader('3. Displaying Catalog (Loop Iteration)');
-  cityLibrary.displayCatalog();
+                  // Contact Details Section using Column, Container, Row, Icon, and Text
+                  Column(
+                    children: [
+                      _buildInfoTile(
+                        context,
+                        icon: Icons.email_outlined,
+                        title: 'Email',
+                        subtitle: 'alex.morgan@example.com',
+                      ),
+                      const SizedBox(height: 12),
+                      _buildInfoTile(
+                        context,
+                        icon: Icons.phone_outlined,
+                        title: 'Phone',
+                        subtitle: '+1 (555) 234-5678',
+                      ),
+                      const SizedBox(height: 12),
+                      _buildInfoTile(
+                        context,
+                        icon: Icons.language,
+                        title: 'Portfolio',
+                        subtitle: 'alexmorgan.dev',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
 
-  printHeader('4. Searching Items (Function & Conditionals)');
-  final searchKeyword = 'code';
-  print('Searching for items containing "$searchKeyword":');
-  final searchResults = cityLibrary.searchByTitle(searchKeyword);
-  for (final result in searchResults) {
-    result.displayInfo();
+                  // Action Buttons Section using Row, Container, Icon, and Text
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.message,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Message',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Container(
+                        height: 48,
+                        width: 48,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.secondary.withValues(
+                            alpha: 0.2,
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(
+                          Icons.share,
+                          color: theme.colorScheme.primary,
+                          size: 20,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
-  printHeader('5. Borrowing Items');
-  cityLibrary.issueItem('MEM01', 'B001'); // Alice borrows Gatsby
-  cityLibrary.issueItem('MEM01', 'D001'); // Alice borrows Inception
-  cityLibrary.issueItem(
-    'MEM02',
-    'B001',
-  ); // Bob tries to borrow Gatsby (already borrowed)
-
-  printHeader('6. Displaying Member Status');
-  member1.displayMemberSummary();
-  print('');
-  member2.displayMemberSummary();
-
-  printHeader('7. Returning Items & Final Catalog Check');
-  cityLibrary.returnItem('MEM01', 'B001'); // Alice returns Gatsby
-
-  printHeader('8. Processing System Queue (While Loop)');
-  final List<String> taskQueue = [
-    'Audit catalog',
-    'Send return reminders',
-    'Backup database',
-  ];
-  int index = 0;
-  while (index < taskQueue.length) {
-    print('Processing system task ${index + 1}: ${taskQueue[index]}');
-    index++;
+  static Widget _buildStatItem(
+    BuildContext context, {
+    required String count,
+    required String label,
+    required IconData icon,
+  }) {
+    final theme = Theme.of(context);
+    return Column(
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: theme.colorScheme.primary),
+            const SizedBox(width: 4),
+            Text(
+              count,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: theme.textTheme.headlineMedium?.color,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: theme.textTheme.titleMedium?.color,
+          ),
+        ),
+      ],
+    );
   }
 
-  cityLibrary.displayCatalog();
+  static Widget _buildDivider(ThemeData theme) {
+    return Container(
+      height: 30,
+      width: 1,
+      color: theme.colorScheme.primary.withValues(alpha: 0.2),
+    );
+  }
 
-  print('==============================================');
-  print('          LIBRARY SYSTEM SIMULATION END       ');
-  print('==============================================');
+  static Widget _buildInfoTile(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: theme.colorScheme.primary, size: 20),
+          ),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: theme.textTheme.titleMedium?.color,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: theme.textTheme.headlineMedium?.color,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
