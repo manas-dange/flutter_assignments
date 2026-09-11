@@ -1,370 +1,421 @@
 import 'package:flutter/material.dart';
 
+import 'models/todo_item.dart';
+
 void main() {
-  runApp(const ProfileApp());
+  runApp(const TodoListApp());
 }
 
-class ProfileApp extends StatelessWidget {
-  const ProfileApp({super.key});
+class TodoListApp extends StatelessWidget {
+  const TodoListApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Custom theme colors
-    const primaryColor = Color(0xFF6C5CE7);
-    const secondaryColor = Color(0xFFA29BFE);
-    const backgroundColor = Color(0xFFF4F6F9);
-    const cardBackgroundColor = Colors.white;
-    const textColor = Color(0xFF2D3436);
-    const subtitleColor = Color(0xFF636E72);
-
     return MaterialApp(
+      title: 'Todo List',
       debugShowCheckedModeBanner: false,
-      title: 'Profile UI',
       theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: backgroundColor,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: primaryColor,
-          primary: primaryColor,
-          secondary: secondaryColor,
-          surface: cardBackgroundColor,
+          seedColor: Colors.indigo,
+          brightness: Brightness.light,
         ),
-        textTheme: const TextTheme(
-          headlineMedium: TextStyle(
-            color: textColor,
-            fontWeight: FontWeight.bold,
-            fontSize: 24,
-          ),
-          titleMedium: TextStyle(
-            color: subtitleColor,
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
-          ),
-          bodyMedium: TextStyle(color: textColor, fontSize: 14),
-        ),
+        useMaterial3: true,
       ),
-      home: const ProfileScreen(),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.indigo,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+      home: const TodoListScreen(),
     );
   }
 }
 
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+enum TodoFilter { all, active, completed }
+
+class TodoListScreen extends StatefulWidget {
+  const TodoListScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+  State<TodoListScreen> createState() => _TodoListScreenState();
+}
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'User Profile',
-          style: TextStyle(fontWeight: FontWeight.bold),
+class _TodoListScreenState extends State<TodoListScreen> {
+  final List<TodoItem> _todos = [
+    TodoItem(
+      id: '1',
+      title: 'Explore Flutter widgets',
+      isCompleted: true,
+      createdAt: DateTime.now().subtract(const Duration(hours: 2)),
+    ),
+    TodoItem(
+      id: '2',
+      title: 'Build Todo List app with StatefulWidget',
+      isCompleted: false,
+      createdAt: DateTime.now().subtract(const Duration(hours: 1)),
+    ),
+    TodoItem(
+      id: '3',
+      title: 'Write comprehensive widget tests',
+      isCompleted: false,
+      createdAt: DateTime.now(),
+    ),
+  ];
+
+  TodoFilter _currentFilter = TodoFilter.all;
+
+  // Add a new Todo item using setState
+  void _addTodo(String title) {
+    final trimmedTitle = title.trim();
+    if (trimmedTitle.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      _todos.insert(
+        0,
+        TodoItem(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          title: trimmedTitle,
+          isCompleted: false,
+          createdAt: DateTime.now(),
         ),
-        centerTitle: true,
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 400),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(24.0),
-                boxShadow: [
-                  BoxShadow(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Profile Avatar Section using CircleAvatar, Container, and Icon
-                  Container(
-                    padding: const EdgeInsets.all(4.0),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: theme.colorScheme.primary,
-                        width: 3.0,
-                      ),
-                    ),
-                    child: CircleAvatar(
-                      radius: 50,
-                      backgroundColor: theme.colorScheme.secondary.withValues(
-                        alpha: 0.3,
-                      ),
-                      child: Icon(
-                        Icons.person,
-                        size: 60,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+      );
+    });
+  }
 
-                  // Name & Title using Text and Column
-                  Text('Alex Morgan', style: theme.textTheme.headlineMedium),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Flutter & Mobile Developer',
-                    style: theme.textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
+  // Toggle mark-complete status using setState
+  void _toggleTodo(String id) {
+    setState(() {
+      final index = _todos.indexWhere((item) => item.id == id);
+      if (index != -1) {
+        _todos[index] = _todos[index].copyWith(
+          isCompleted: !_todos[index].isCompleted,
+        );
+      }
+    });
+  }
 
-                  // Location Tag using Row, Icon, Text, and Container
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.location_on,
-                          size: 16,
-                          color: theme.colorScheme.primary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'San Francisco, CA',
-                          style: TextStyle(
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
+  // Delete a Todo item using setState
+  void _deleteTodo(String id) {
+    final index = _todos.indexWhere((item) => item.id == id);
+    if (index == -1) {
+      return;
+    }
 
-                  // Statistics Section using Container, Row, Column, Text, and Icon
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 16,
-                      horizontal: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: theme.scaffoldBackgroundColor,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildStatItem(
-                          context,
-                          count: '128',
-                          label: 'Projects',
-                          icon: Icons.code,
-                        ),
-                        _buildDivider(theme),
-                        _buildStatItem(
-                          context,
-                          count: '14.5k',
-                          label: 'Followers',
-                          icon: Icons.people,
-                        ),
-                        _buildDivider(theme),
-                        _buildStatItem(
-                          context,
-                          count: '4.9',
-                          label: 'Rating',
-                          icon: Icons.star,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
+    final deletedItem = _todos[index];
+    setState(() {
+      _todos.removeAt(index);
+    });
 
-                  // Contact Details Section using Column, Container, Row, Icon, and Text
-                  Column(
-                    children: [
-                      _buildInfoTile(
-                        context,
-                        icon: Icons.email_outlined,
-                        title: 'Email',
-                        subtitle: 'alex.morgan@example.com',
-                      ),
-                      const SizedBox(height: 12),
-                      _buildInfoTile(
-                        context,
-                        icon: Icons.phone_outlined,
-                        title: 'Phone',
-                        subtitle: '+1 (555) 234-5678',
-                      ),
-                      const SizedBox(height: 12),
-                      _buildInfoTile(
-                        context,
-                        icon: Icons.language,
-                        title: 'Portfolio',
-                        subtitle: 'alexmorgan.dev',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Action Buttons Section using Row, Container, Icon, and Text
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.message,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Message',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Container(
-                        height: 48,
-                        width: 48,
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.secondary.withValues(
-                            alpha: 0.2,
-                          ),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Icon(
-                          Icons.share,
-                          color: theme.colorScheme.primary,
-                          size: 20,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Deleted "${deletedItem.title}"'),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () {
+            setState(() {
+              _todos.insert(index, deletedItem);
+            });
+          },
         ),
+        duration: const Duration(seconds: 3),
       ),
     );
   }
 
-  static Widget _buildStatItem(
-    BuildContext context, {
-    required String count,
-    required String label,
-    required IconData icon,
-  }) {
-    final theme = Theme.of(context);
-    return Column(
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 16, color: theme.colorScheme.primary),
-            const SizedBox(width: 4),
-            Text(
-              count,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: theme.textTheme.headlineMedium?.color,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: theme.textTheme.titleMedium?.color,
-          ),
-        ),
-      ],
-    );
-  }
+  // Show bottom sheet or dialog to enter a new task
+  void _showAddTodoModal() {
+    final textController = TextEditingController();
 
-  static Widget _buildDivider(ThemeData theme) {
-    return Container(
-      height: 30,
-      width: 1,
-      color: theme.colorScheme.primary.withValues(alpha: 0.2),
-    );
-  }
-
-  static Widget _buildInfoTile(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-  }) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
-        borderRadius: BorderRadius.circular(14),
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: theme.colorScheme.primary, size: 20),
+      builder: (BuildContext sheetContext) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 20,
+            bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 20,
           ),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: theme.textTheme.titleMedium?.color,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Add New Task',
+                    style: Theme.of(sheetContext).textTheme.titleLarge
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(sheetContext),
+                  ),
+                ],
               ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: theme.textTheme.headlineMedium?.color,
+              const SizedBox(height: 12),
+              TextField(
+                key: const Key('todo_input_field'),
+                controller: textController,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  labelText: 'Task title',
+                  hintText: 'e.g. Plan weekend road trip',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.task_outlined),
                 ),
+                textCapitalization: TextCapitalization.sentences,
+                onSubmitted: (value) {
+                  if (value.trim().isNotEmpty) {
+                    _addTodo(value);
+                    Navigator.pop(sheetContext);
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                key: const Key('submit_todo_button'),
+                onPressed: () {
+                  if (textController.text.trim().isNotEmpty) {
+                    _addTodo(textController.text);
+                    Navigator.pop(sheetContext);
+                  }
+                },
+                icon: const Icon(Icons.add),
+                label: const Text('Add Task'),
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  List<TodoItem> get _filteredTodos {
+    switch (_currentFilter) {
+      case TodoFilter.active:
+        return _todos.where((item) => !item.isCompleted).toList();
+      case TodoFilter.completed:
+        return _todos.where((item) => item.isCompleted).toList();
+      case TodoFilter.all:
+        return _todos;
+    }
+  }
+
+  int get _completedCount => _todos.where((item) => item.isCompleted).length;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final filteredList = _filteredTodos;
+    final totalCount = _todos.length;
+    final completedCount = _completedCount;
+    final progress = totalCount == 0 ? 0.0 : completedCount / totalCount;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Todo List'), centerTitle: true),
+      body: Column(
+        children: [
+          // Progress & Stats Card
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Card(
+              elevation: 0,
+              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Task Progress',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          '$completedCount of $totalCount completed',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        minHeight: 8,
+                        backgroundColor:
+                            theme.colorScheme.surfaceContainerHighest,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Filter Selection
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            child: SegmentedButton<TodoFilter>(
+              segments: const [
+                ButtonSegment<TodoFilter>(
+                  value: TodoFilter.all,
+                  label: Text('All'),
+                  icon: Icon(Icons.list),
+                ),
+                ButtonSegment<TodoFilter>(
+                  value: TodoFilter.active,
+                  label: Text('Active'),
+                  icon: Icon(Icons.radio_button_unchecked),
+                ),
+                ButtonSegment<TodoFilter>(
+                  value: TodoFilter.completed,
+                  label: Text('Completed'),
+                  icon: Icon(Icons.check_circle_outline),
+                ),
+              ],
+              selected: {_currentFilter},
+              onSelectionChanged: (Set<TodoFilter> newSelection) {
+                setState(() {
+                  _currentFilter = newSelection.first;
+                });
+              },
+            ),
+          ),
+
+          const SizedBox(height: 6),
+
+          // Todo List or Empty State
+          Expanded(
+            child: filteredList.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.checklist_rtl_rounded,
+                          size: 72,
+                          color: theme.colorScheme.outline.withValues(
+                            alpha: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          _todos.isEmpty
+                              ? 'No tasks yet!'
+                              : 'No ${_currentFilter.name} tasks found',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          _todos.isEmpty
+                              ? 'Tap the + button below to add your first task.'
+                              : 'Switch filters or add more tasks.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.outline,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    itemCount: filteredList.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    itemBuilder: (context, index) {
+                      final item = filteredList[index];
+                      return Card(
+                        key: Key('todo_item_${item.id}'),
+                        elevation: item.isCompleted ? 0 : 1,
+                        color: item.isCompleted
+                            ? theme.colorScheme.surfaceContainerHighest
+                                  .withValues(alpha: 0.4)
+                            : theme.colorScheme.surface,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(
+                            color: item.isCompleted
+                                ? Colors.transparent
+                                : theme.colorScheme.outlineVariant.withValues(
+                                    alpha: 0.5,
+                                  ),
+                          ),
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          leading: Checkbox(
+                            key: Key('checkbox_${item.id}'),
+                            value: item.isCompleted,
+                            onChanged: (_) => _toggleTodo(item.id),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          title: Text(
+                            item.title,
+                            style: TextStyle(
+                              decoration: item.isCompleted
+                                  ? TextDecoration.lineThrough
+                                  : TextDecoration.none,
+                              color: item.isCompleted
+                                  ? theme.colorScheme.onSurfaceVariant
+                                        .withValues(alpha: 0.6)
+                                  : theme.colorScheme.onSurface,
+                              fontWeight: item.isCompleted
+                                  ? FontWeight.normal
+                                  : FontWeight.w500,
+                            ),
+                          ),
+                          trailing: IconButton(
+                            key: Key('delete_${item.id}'),
+                            icon: Icon(
+                              Icons.delete_outline,
+                              color: theme.colorScheme.error,
+                            ),
+                            tooltip: 'Delete task',
+                            onPressed: () => _deleteTodo(item.id),
+                          ),
+                          onTap: () => _toggleTodo(item.id),
+                        ),
+                      );
+                    },
+                  ),
+          ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        key: const Key('add_todo_fab'),
+        onPressed: _showAddTodoModal,
+        icon: const Icon(Icons.add),
+        label: const Text('Add Task'),
       ),
     );
   }
