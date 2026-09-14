@@ -2,124 +2,104 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:flutter_assignments/main.dart';
+import 'package:flutter_assignments/widgets/product_card.dart';
 
 void main() {
-  testWidgets('Initial tasks and progress display correctly', (
+  testWidgets('Renders product catalog with ListView.builder', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const TodoListApp());
+    await tester.pumpWidget(const DynamicProductCatalogApp());
+    await tester.pumpAndSettle();
 
-    // Verify initial tasks exist
-    expect(find.text('Explore Flutter widgets'), findsOneWidget);
-    expect(
-      find.text('Build Todo List app with StatefulWidget'),
-      findsOneWidget,
-    );
-    expect(find.text('Write comprehensive widget tests'), findsOneWidget);
+    // Check App title
+    expect(find.text('Product Catalog'), findsOneWidget);
 
-    // Verify progress text
-    expect(find.text('1 of 3 completed'), findsOneWidget);
+    // Check ListView is present
+    expect(find.byType(ListView), findsWidgets);
+
+    // Check initial products rendered via ProductCard
+    expect(find.byType(ProductCard), findsWidgets);
+    expect(find.text('Wireless Noise-Canceling Headphones'), findsOneWidget);
   });
 
-  testWidgets('Add a new todo task', (WidgetTester tester) async {
-    await tester.pumpWidget(const TodoListApp());
-
-    // Tap FloatingActionButton to open the Add Task modal
-    await tester.tap(find.byKey(const Key('add_todo_fab')));
-    await tester.pumpAndSettle();
-
-    // Verify modal bottom sheet appeared
-    expect(find.text('Add New Task'), findsOneWidget);
-
-    // Enter new task title
-    await tester.enterText(
-      find.byKey(const Key('todo_input_field')),
-      'Drink 2 liters of water',
-    );
-    await tester.pump();
-
-    // Tap Add Task button
-    await tester.tap(find.byKey(const Key('submit_todo_button')));
-    await tester.pumpAndSettle();
-
-    // Verify the new task is now in the list
-    expect(find.text('Drink 2 liters of water'), findsOneWidget);
-    expect(find.text('1 of 4 completed'), findsOneWidget);
-  });
-
-  testWidgets('Mark-complete toggles task status', (WidgetTester tester) async {
-    await tester.pumpWidget(const TodoListApp());
-
-    // Task '2' ("Build Todo List app with StatefulWidget") starts incomplete
-    final checkboxFinder = find.byKey(const Key('checkbox_2'));
-    expect(checkboxFinder, findsOneWidget);
-    expect(tester.widget<Checkbox>(checkboxFinder).value, isFalse);
-
-    // Tap the checkbox to mark complete
-    await tester.tap(checkboxFinder);
-    await tester.pumpAndSettle();
-
-    // Verify checkbox is now true
-    expect(tester.widget<Checkbox>(checkboxFinder).value, isTrue);
-    expect(find.text('2 of 3 completed'), findsOneWidget);
-
-    // Tap again to unmark
-    await tester.tap(checkboxFinder);
-    await tester.pumpAndSettle();
-
-    expect(tester.widget<Checkbox>(checkboxFinder).value, isFalse);
-    expect(find.text('1 of 3 completed'), findsOneWidget);
-  });
-
-  testWidgets('Delete task removes item and shows undo snackbar', (
+  testWidgets('Search filters products in real time with setState', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const TodoListApp());
-
-    // Initial check
-    expect(find.text('Explore Flutter widgets'), findsOneWidget);
-
-    // Delete the first task (id: 1)
-    await tester.tap(find.byKey(const Key('delete_1')));
+    await tester.pumpWidget(const DynamicProductCatalogApp());
     await tester.pumpAndSettle();
 
-    // Item should be removed
-    expect(find.text('Explore Flutter widgets'), findsNothing);
-    expect(find.text('Deleted "Explore Flutter widgets"'), findsOneWidget);
-
-    // Tap Undo
-    await tester.tap(find.text('Undo'));
+    // Type "Camera" in search field
+    await tester.enterText(find.byType(TextField), 'Camera');
     await tester.pumpAndSettle();
 
-    // Item should be restored
-    expect(find.text('Explore Flutter widgets'), findsOneWidget);
+    // Verify camera product is shown
+    expect(find.text('4K Ultra HD Action Camera'), findsOneWidget);
+
+    // Verify unrelated products are filtered out
+    expect(find.text('Wireless Noise-Canceling Headphones'), findsNothing);
+
+    // Clear search using clear button
+    await tester.tap(find.byIcon(Icons.clear_rounded));
+    await tester.pumpAndSettle();
+
+    // Verify initial products return
+    expect(find.text('Wireless Noise-Canceling Headphones'), findsOneWidget);
   });
 
-  testWidgets('Filters work as expected', (WidgetTester tester) async {
-    await tester.pumpWidget(const TodoListApp());
-
-    // Initial state: All (3 items)
-    expect(find.text('Explore Flutter widgets'), findsOneWidget); // completed
-    expect(
-      find.text('Build Todo List app with StatefulWidget'),
-      findsOneWidget,
-    ); // active
-
-    // Switch to Active filter
-    await tester.tap(find.text('Active'));
+  testWidgets('Category chip filters products with setState', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const DynamicProductCatalogApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Explore Flutter widgets'), findsNothing);
-    expect(
-      find.text('Build Todo List app with StatefulWidget'),
-      findsOneWidget,
-    );
-
-    // Switch to Completed filter
-    await tester.tap(find.text('Completed'));
+    // Tap 'Footwear' category chip
+    final footwearChip = find.widgetWithText(ChoiceChip, 'Footwear (2)');
+    expect(footwearChip, findsOneWidget);
+    await tester.tap(footwearChip);
     await tester.pumpAndSettle();
 
-    expect(find.text('Explore Flutter widgets'), findsOneWidget);
-    expect(find.text('Build Todo List app with StatefulWidget'), findsNothing);
+    // Verify footwear items are shown
+    expect(find.text('Ultra-Light Running Shoes'), findsOneWidget);
+    expect(find.text('Classic Canvas Sneakers'), findsOneWidget);
+
+    // Verify other categories are filtered out
+    expect(find.text('Fitness Smartwatch Pro'), findsNothing);
+  });
+
+  testWidgets('Empty search shows friendly empty state with reset button', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const DynamicProductCatalogApp());
+    await tester.pumpAndSettle();
+
+    // Enter non-matching query
+    await tester.enterText(find.byType(TextField), 'NonExistentProductXYZ');
+    await tester.pumpAndSettle();
+
+    // Empty state should be visible
+    expect(find.text('No matching products'), findsOneWidget);
+    expect(find.text('Reset All Filters'), findsOneWidget);
+
+    // Tap reset button
+    await tester.tap(find.text('Reset All Filters'));
+    await tester.pumpAndSettle();
+
+    // Full product list restored
+    expect(find.text('Wireless Noise-Canceling Headphones'), findsOneWidget);
+  });
+
+  testWidgets('Tapping product opens detail bottom sheet', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const DynamicProductCatalogApp());
+    await tester.pumpAndSettle();
+
+    // Tap first product card
+    await tester.tap(find.text('Wireless Noise-Canceling Headphones'));
+    await tester.pumpAndSettle();
+
+    // Verify bottom sheet appears with description and Add to Cart button
+    expect(find.text('Description'), findsOneWidget);
+    expect(find.text('Add to Cart'), findsOneWidget);
   });
 }
