@@ -1,33 +1,44 @@
 import 'package:flutter/material.dart';
 
-import 'screens/product_catalog_screen.dart';
+import 'app_routes.dart';
+import 'screens/detail_screen.dart';
+import 'screens/form_screen.dart';
+import 'screens/home_screen.dart';
 
 void main() {
-  runApp(const DynamicProductCatalogApp());
+  runApp(const MultiScreenApp());
 }
 
-class DynamicProductCatalogApp extends StatelessWidget {
-  const DynamicProductCatalogApp({super.key});
+class MultiScreenApp extends StatelessWidget {
+  const MultiScreenApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Dynamic Product Catalog',
+      title: 'Multi-Screen App',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1E3A8A),
+          seedColor: Colors.deepPurple,
           brightness: Brightness.light,
         ),
-        appBarTheme: const AppBarTheme(
-          centerTitle: false,
-          elevation: 0,
-          scrolledUnderElevation: 2,
-        ),
-        cardTheme: const CardThemeData(elevation: 0),
+        useMaterial3: true,
       ),
-      home: const ProductCatalogScreen(),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.deepPurple,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
+      // Initial route definition
+      initialRoute: AppRoutes.home,
+      // Named routes table
+      routes: {
+        AppRoutes.home: (context) => const HomeScreen(),
+        AppRoutes.register: (context) => const FormScreen(),
+        AppRoutes.detail: (context) => const DetailScreen(),
+      },
     );
   }
 }
