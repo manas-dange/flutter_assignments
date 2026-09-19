@@ -1,217 +1,195 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:flutter_assignments/app_routes.dart';
 import 'package:flutter_assignments/main.dart';
-import 'package:flutter_assignments/screens/home_screen.dart';
+import 'package:flutter_assignments/services/post_repository.dart';
 
 void main() {
-  testWidgets(
-    'Home screen displays welcome info and navigates to Form screen',
-    (WidgetTester tester) async {
-      await tester.pumpWidget(const MultiScreenApp());
-
-      // Verify Home Screen widgets
-      expect(find.text('Multi-Screen Portal'), findsOneWidget);
-      expect(find.text('Welcome to Multi-Screen App'), findsOneWidget);
-      expect(find.text('Registration Form'), findsOneWidget); // Route card
-
-      // Ensure button is visible in scroll view and tap
-      final openButton = find.byKey(const Key('open_registration_button'));
-      await tester.ensureVisible(openButton);
-      await tester.tap(openButton);
-      await tester.pumpAndSettle();
-
-      // Verify we navigated to Registration Form screen
-      expect(find.text('Create an Account'), findsOneWidget);
-      expect(find.byKey(const Key('name_field')), findsOneWidget);
-      expect(find.byKey(const Key('email_field')), findsOneWidget);
-      expect(find.byKey(const Key('password_field')), findsOneWidget);
+  const samplePostsJson = '''[
+    {
+      "userId": 1,
+      "id": 1,
+      "title": "sunt aut facere repellat",
+      "body": "quia et suscipit suscipit recusandae consequuntur"
     },
-  );
+    {
+      "userId": 1,
+      "id": 2,
+      "title": "qui est esse",
+      "body": "est rerum tempore vitae sequi sint"
+    }
+  ]''';
 
-  testWidgets('Form validation triggers on empty and invalid inputs', (
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
+  testWidgets('FutureBuilder displays loading indicator while fetching', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const MultiScreenApp());
+    final mockClient = MockClient((request) async {
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      return http.Response(samplePostsJson, 200);
+    });
 
-    // Go to registration form
-    final openButton = find.byKey(const Key('open_registration_button'));
-    await tester.ensureVisible(openButton);
-    await tester.tap(openButton);
+    final prefs = await SharedPreferences.getInstance();
+    final repository = PostRepository(client: mockClient, prefs: prefs);
+
+    await tester.pumpWidget(ApiDataFetcherApp(repository: repository));
+
+    // Initially waiting for future
+    expect(find.byKey(const Key('loading_indicator')), findsOneWidget);
+    expect(find.text('Fetching posts from REST API...'), findsOneWidget);
+
     await tester.pumpAndSettle();
 
-    // Tap submit on empty form
-    final submitButton = find.byKey(const Key('submit_registration_button'));
-    await tester.ensureVisible(submitButton);
-    await tester.tap(submitButton);
-    await tester.pumpAndSettle();
-
-    // Verify required field error messages
-    expect(find.text('Full name is required'), findsOneWidget);
-    expect(find.text('Email is required'), findsOneWidget);
-    expect(find.text('Password is required'), findsOneWidget);
+    // After completion, English-transformed posts are rendered
+    expect(find.text('Getting Started with Flutter and Dart'), findsOneWidget);
     expect(
-      find.text('You must accept the terms & conditions to proceed'),
+      find.text('Understanding Reactive UI with StatefulWidget and setState'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('FutureBuilder renders network data and stores in cache', (
+    WidgetTester tester,
+  ) async {
+    final mockClient = MockClient((request) async {
+      return http.Response(samplePostsJson, 200);
+    });
+
+    final prefs = await SharedPreferences.getInstance();
+    final repository = PostRepository(client: mockClient, prefs: prefs);
+
+    await tester.pumpWidget(ApiDataFetcherApp(repository: repository));
+    await tester.pumpAndSettle();
+
+    // Verify posts rendered in English
+    expect(find.text('Getting Started with Flutter and Dart'), findsOneWidget);
+    expect(
+      find.text('Understanding Reactive UI with StatefulWidget and setState'),
       findsOneWidget,
     );
 
-    // Test invalid email
-    final emailField = find.byKey(const Key('email_field'));
-    await tester.ensureVisible(emailField);
-    await tester.enterText(emailField, 'invalid-email-format');
-    await tester.ensureVisible(submitButton);
-    await tester.tap(submitButton);
-    await tester.pumpAndSettle();
-    expect(
-      find.text('Enter a valid email address (e.g. user@domain.com)'),
-      findsOneWidget,
-    );
+    // Verify source badge indicates live network
+    expect(find.text('Live Network Data'), findsOneWidget);
+    expect(find.text('2 items'), findsOneWidget);
 
-    // Test short password
-    final passwordField = find.byKey(const Key('password_field'));
-    await tester.ensureVisible(passwordField);
-    await tester.enterText(passwordField, '123');
-    await tester.ensureVisible(submitButton);
-    await tester.tap(submitButton);
-    await tester.pumpAndSettle();
-    expect(
-      find.text('Password must be at least 6 characters long'),
-      findsOneWidget,
-    );
-
-    // Test password without letters
-    await tester.ensureVisible(passwordField);
-    await tester.enterText(passwordField, '123456');
-    await tester.ensureVisible(submitButton);
-    await tester.tap(submitButton);
-    await tester.pumpAndSettle();
-    expect(
-      find.text('Password must contain both letters and numbers'),
-      findsOneWidget,
-    );
-
-    // Test password confirmation mismatch
-    final confirmPasswordField = find.byKey(
-      const Key('confirm_password_field'),
-    );
-    await tester.ensureVisible(passwordField);
-    await tester.enterText(passwordField, 'Pass123');
-    await tester.ensureVisible(confirmPasswordField);
-    await tester.enterText(confirmPasswordField, 'Pass456');
-    await tester.ensureVisible(submitButton);
-    await tester.tap(submitButton);
-    await tester.pumpAndSettle();
-    expect(find.text('Passwords do not match'), findsOneWidget);
+    // Verify SharedPreferences has cached the data
+    expect(prefs.getString(PostRepository.cacheKey), isNotNull);
+    expect(prefs.getString(PostRepository.cacheTimestampKey), isNotNull);
   });
 
   testWidgets(
-    'Complete flow: Home -> Form (Valid input) -> Detail screen -> Home',
+    'FutureBuilder falls back to SharedPreferences cache when network fails',
     (WidgetTester tester) async {
-      await tester.pumpWidget(const MultiScreenApp());
+      // Populate SharedPreferences with cached data
+      SharedPreferences.setMockInitialValues({
+        PostRepository.cacheKey: samplePostsJson,
+        PostRepository.cacheTimestampKey: DateTime.now()
+            .subtract(const Duration(minutes: 10))
+            .toIso8601String(),
+      });
 
-      // 1. Navigate to Form
-      final openButton = find.byKey(const Key('open_registration_button'));
-      await tester.ensureVisible(openButton);
-      await tester.tap(openButton);
+      // Mock client that fails (offline / server error)
+      final mockClient = MockClient((request) async {
+        return http.Response('Server Error', 500);
+      });
+
+      final prefs = await SharedPreferences.getInstance();
+      final repository = PostRepository(client: mockClient, prefs: prefs);
+
+      await tester.pumpWidget(ApiDataFetcherApp(repository: repository));
       await tester.pumpAndSettle();
 
-      // 2. Fill in valid inputs
-      final nameField = find.byKey(const Key('name_field'));
-      final emailField = find.byKey(const Key('email_field'));
-      final passwordField = find.byKey(const Key('password_field'));
-      final confirmPasswordField = find.byKey(
-        const Key('confirm_password_field'),
+      // Verify cached posts are still rendered in English
+      expect(
+        find.text('Getting Started with Flutter and Dart'),
+        findsOneWidget,
       );
-      final termsCheckbox = find.byKey(const Key('terms_checkbox'));
-      final submitButton = find.byKey(const Key('submit_registration_button'));
+      expect(
+        find.text('Understanding Reactive UI with StatefulWidget and setState'),
+        findsOneWidget,
+      );
 
-      await tester.ensureVisible(nameField);
-      await tester.enterText(nameField, 'Jane Doe');
-
-      await tester.ensureVisible(emailField);
-      await tester.enterText(emailField, 'jane.doe@example.com');
-
-      await tester.ensureVisible(passwordField);
-      await tester.enterText(passwordField, 'SecurePass1');
-
-      await tester.ensureVisible(confirmPasswordField);
-      await tester.enterText(confirmPasswordField, 'SecurePass1');
-
-      // Unfocus keyboard so screen viewport is fully visible
-      FocusManager.instance.primaryFocus?.unfocus();
-      await tester.pumpAndSettle();
-
-      await tester.ensureVisible(termsCheckbox);
-      await tester.tap(termsCheckbox);
-      await tester.pumpAndSettle();
-
-      // 3. Submit Form
-      await tester.ensureVisible(submitButton);
-      await tester.tap(submitButton);
-      await tester.pumpAndSettle();
-
-      // 4. Verify Detail Screen is displayed with submitted data
-      expect(find.text('Registration Details'), findsOneWidget);
-      expect(find.text('Jane Doe'), findsWidgets);
-      expect(find.text('jane.doe@example.com'), findsOneWidget);
-      expect(find.text('Flutter Developer'), findsWidgets);
-      expect(find.text('Registration Validated'), findsOneWidget);
-
-      // 5. Navigate back to Home screen
-      final backButton = find.byKey(const Key('back_to_home_button'));
-      await tester.ensureVisible(backButton);
-      await tester.tap(backButton);
-      await tester.pumpAndSettle();
-
-      // Verify back on Home Screen
-      expect(find.text('Welcome to Multi-Screen App'), findsOneWidget);
+      // Verify badge indicates cached data fallback
+      expect(find.text('Cached Data (SharedPreferences)'), findsOneWidget);
     },
   );
 
-  testWidgets('Reset button clears form fields', (WidgetTester tester) async {
-    await tester.pumpWidget(const MultiScreenApp());
+  testWidgets(
+    'FutureBuilder shows error state when network fails and no cache exists',
+    (WidgetTester tester) async {
+      // Empty cache
+      SharedPreferences.setMockInitialValues({});
 
-    final openButton = find.byKey(const Key('open_registration_button'));
-    await tester.ensureVisible(openButton);
-    await tester.tap(openButton);
-    await tester.pumpAndSettle();
+      final mockClient = MockClient((request) async {
+        throw http.ClientException('Network connection refused');
+      });
 
-    final nameField = find.byKey(const Key('name_field'));
-    await tester.ensureVisible(nameField);
-    await tester.enterText(nameField, 'Sample User');
+      final prefs = await SharedPreferences.getInstance();
+      final repository = PostRepository(client: mockClient, prefs: prefs);
 
-    // Tap reset button
-    final resetButton = find.byKey(const Key('reset_form_button'));
-    await tester.ensureVisible(resetButton);
-    await tester.tap(resetButton);
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(ApiDataFetcherApp(repository: repository));
+      await tester.pumpAndSettle();
 
-    // Verify field is cleared
-    expect(find.text('Sample User'), findsNothing);
-  });
+      // Verify error UI is displayed
+      expect(find.text('Failed to Load Data'), findsOneWidget);
+      expect(find.byKey(const Key('retry_button')), findsOneWidget);
+    },
+  );
 
-  testWidgets('Detail screen fallback when no arguments provided', (
+  testWidgets('Tapping post card opens detail modal', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        initialRoute: AppRoutes.detail,
-        routes: {
-          AppRoutes.home: (context) => const SizedBox(),
-          AppRoutes.register: (context) => const SizedBox(),
-          AppRoutes.detail: (context) => const MultiScreenApp(),
-        },
-      ),
-    );
+    final mockClient = MockClient((request) async {
+      return http.Response(samplePostsJson, 200);
+    });
 
-    // Using MultiScreenApp directly to route to detail
-    await tester.pumpWidget(const MultiScreenApp());
-    final BuildContext context = tester.element(find.byType(HomeScreen));
-    Navigator.pushNamed(context, AppRoutes.detail);
+    final prefs = await SharedPreferences.getInstance();
+    final repository = PostRepository(client: mockClient, prefs: prefs);
+
+    await tester.pumpWidget(ApiDataFetcherApp(repository: repository));
     await tester.pumpAndSettle();
 
-    expect(find.text('No Registration Data Found'), findsOneWidget);
-    expect(find.text('Go to Registration Form'), findsOneWidget);
+    // Tap first post card
+    await tester.tap(find.byKey(const Key('post_card_1')));
+    await tester.pumpAndSettle();
+
+    // Verify bottom sheet modal opened with English content
+    expect(find.text('Post #1 (User 1)'), findsOneWidget);
+    expect(
+      find.text(
+        'Learn how to architect your Flutter application with clean code practices, modular folder structures, and reactive state management.',
+      ),
+      findsWidgets,
+    );
+  });
+
+  testWidgets('Clear cache removes keys from SharedPreferences', (
+    WidgetTester tester,
+  ) async {
+    final mockClient = MockClient((request) async {
+      return http.Response(samplePostsJson, 200);
+    });
+
+    final prefs = await SharedPreferences.getInstance();
+    final repository = PostRepository(client: mockClient, prefs: prefs);
+
+    await tester.pumpWidget(ApiDataFetcherApp(repository: repository));
+    await tester.pumpAndSettle();
+
+    expect(prefs.getString(PostRepository.cacheKey), isNotNull);
+
+    // Tap clear cache button in AppBar
+    await tester.tap(find.byKey(const Key('clear_cache_button')));
+    await tester.pumpAndSettle();
+
+    // Verify cache is cleared
+    expect(prefs.getString(PostRepository.cacheKey), isNull);
+    expect(find.text('Local SharedPreferences cache cleared!'), findsOneWidget);
   });
 }
